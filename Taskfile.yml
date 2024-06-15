@@ -1,0 +1,127 @@
+---
+version: '3'
+
+includes:
+  remote: 
+    taskfile: https://raw.githubusercontent.com/saydulaev/taskfile/v1.4.3/Taskfile.yml
+    internal: true
+    vars:
+      TASK_RUNTIME:
+        sh: echo "${TASK_RUNTIME:-devbox}"
+
+vars:
+  TASK_RUNTIME:
+    sh: echo "${TASK_RUNTIME:-devbox}"
+
+tasks:
+  trivy*:
+    desc: Trivy scan config files for misconfigurations
+    summary: "Trivy scan config files for misconfigurations"
+    cmds:
+      - task: remote:security:sast:trivy:config
+        vars:
+          FLAGS: '{{.MATCH | join " "}}'
+          TARGET: '{{.USER_WORKING_DIR}}'
+
+  checkov*:
+    desc: Checkov scan config files for misconfigurations
+    summary: |
+      Examples:
+      # Set cyclonedx output format
+      task "checkov --output cyclonedx"
+    cmds:
+      - task: remote:security:sast:checkov:scanner
+        vars:
+          FLAGS: '{{.MATCH | join " "}}'
+          CKV_FRAMEWORK: terraform
+          CHECKOV_OUTPUT_CODE_LINE_LIMIT: 110
+
+  grype:
+    desc: Grype scan config files for misconfigurations
+    summary: "Grype scan config files for misconfigurations"
+    cmds:
+      - task: remote:security:sast:grype:scanner
+        vars:
+          GRYPE_OUTPUT: table
+          GRYPE_DB_AUTO_UPDATE: false
+          GRYPE_ONLY_FIXED: true
+
+  terraform-init:
+    summary: terraform init
+    desc: terraform init
+    internal: false
+    cmds:
+      - task: remote:terraform:init
+
+  terraform-fmt*:
+    summary: terraform fmt
+    desc: terraform fmt
+    cmds:
+      - task: remote:terraform:fmt
+        vars:
+          FLAGS: '{{.MATCH | join " "}}'
+
+  terraform-validate*:
+    summary: terraform validate
+    desc: terraform validate
+    cmds:
+      - task: remote:terraform:validate
+        vars:
+          FLAGS: '{{.MATCH | join " "}}'
+
+  terraform-lint:
+    summary: Run tflint validation
+    desc: tflint
+    cmds:
+      - task: remote:terraform:tflint
+
+  terraform-doc:
+    summary: Gerenarate terraform documentation
+    desc: terraform-doc
+    cmds:
+      - task: remote:terraform:doc
+        vars:
+          FLAGS: '--output-file README.md'
+
+  terraform-plan*:
+    summary: terraform plan wildcard flags
+    desc: terraform plan
+    deps: [terraform-init]
+    cmds:
+      - task: "remote:terraform:plan"
+        vars:
+          GLOBAL_FLAGS: "-chdir={{.USER_WORKING_DIR}}"
+          FLAGS: '{{.MATCH | join " "}}'
+    requires:
+      vars: [GITLAB_TOKEN]
+
+  terraform-apply*:
+    summary: terraform apply
+    desc: terraform apply
+    deps: [terraform-init]
+    cmds:
+      - task: remote:terraform:apply
+        vars:
+          GLOBAL_FLAGS: "-chdir={{.USER_WORKING_DIR}}"
+          FLAGS: '{{.MATCH | join " "}}'
+    requires:
+      vars: [GITLAB_TOKEN]
+
+  terraform-destroy*:
+    summary: terraform destroy
+    desc: terraform destroy
+    deps: [terraform-init]
+    preconditions:
+      - test -f terraform.tfstate
+      - test -d .terraform
+      - test -f .terraform.lock.hcl
+    cmds:
+      - task: remote:terraform:plan
+        vars:
+          FLAGS: "-destroy"
+          GLOBAL_FLAGS: "-chdir={{.USER_WORKING_DIR}}"
+      - task: remote:terraform:destroy
+        vars:
+          FLAGS: '{{.MATCH | join " "}}'
+    requires:
+      vars: [GITLAB_TOKEN]

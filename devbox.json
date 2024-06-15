@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.10.7/.schema/devbox.schema.json",
+  "packages": [
+    "terraform@1.8.3",
+    "opentofu@1.7.1",
+    "tflint@0.51.0",
+    "tfsec@1.28.6",
+    "tfswitch@1.0.2",
+    "tftui@0.13.0",
+    "tfupdate@0.8.2",
+    "trivy@0.51.1",
+    "checkov@3.2.91",
+    "go-task@3.37.0",
+    "terrascan@1.19.1",
+    "grype@0.77.4"
+  ],
+  "env": {
+    "TASK_X_REMOTE_TASKFILES": "1"
+  },
+  "shell": {
+    "init_hook": [
+      "echo 'Welcome to devbox!' > /dev/null"
+    ],
+    "scripts": {
+      "list":          ["task -l"],
+      "fmt":           ["task terraform-fmt "],
+      "fmt-recursive": ["task \"terraform-fmt -recursive\""],
+      "validate":      ["task terraform-validate "],
+      "lint":          ["task terraform-lint"],
+      "doc":           ["task terraform-doc"],
+      "plan":          ["task terraform-plan "],
+      "apply":         ["task terraform-apply "],
+      "destroy":       ["task terraform-destroy "],
+      "checkov":       ["task \"checkov --download-external-modules true --skip-check CKV_GLB_3,CKV_GLB_1,CKV_GLB_4\""],
+      "trivy":         ["task trivy"],
+      "grype":         ["task grype"]
+    }
+  }
+}
